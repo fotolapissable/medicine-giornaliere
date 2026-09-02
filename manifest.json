@@ -2,7 +2,7 @@
   "name": "Medicinali Giornalieri",
   "short_name": "Medicinali",
   "description": "Promemoria quotidiano per la presa dei medicinali",
-  "start_url": "./medicinali-giornalieri.html",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "background_color": "#F6F2EA",

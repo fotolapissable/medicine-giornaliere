@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Medicinali Giornalieri</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#5F7A5A">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Medicinali">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F6F2EA;
+    --surface:#FFFFFF;
+    --surface-2:#FBF9F4;
+    --text:#2B2A26;
+    --muted:#8A8271;
+    --border:#E4DDCC;
+    --accent:#5F7A5A;
+    --accent-soft:#E3EBDD;
+    --accent-strong:#3F5A3B;
+    --warn:#B5652E;
+    --warn-soft:#F5E4D2;
+    --shadow: 0 1px 2px rgba(43,42,38,0.04), 0 6px 20px rgba(43,42,38,0.06);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    background-image:
+      radial-gradient(circle at 1px 1px, rgba(43,42,38,0.045) 1px, transparent 0);
+    background-size: 22px 22px;
+    color:var(--text);
+    font-family:'Inter',system-ui,-apple-system,sans-serif;
+    min-height:100vh;
+    padding: 28px 16px 60px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:560px;margin:0 auto;}
+
+  header{margin-bottom:22px;}
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--accent-strong);
+    font-weight:600;
+    margin-bottom:8px;
+  }
+  h1{
+    font-family:'Fraunces',serif;
+    font-optical-sizing:auto;
+    font-weight:500;
+    font-size:32px;
+    line-height:1.1;
+    margin:0 0 6px;
+    letter-spacing:-0.01em;
+  }
+  .date-line{
+    color:var(--muted);
+    font-size:14.5px;
+    text-transform:capitalize;
+  }
+
+  .reminder-banner{
+    display:none;
+    background:var(--warn-soft);
+    border:1px solid #E7C9A6;
+    border-radius:12px;
+    padding:12px 14px;
+    margin-bottom:16px;
+  }
+  .reminder-banner.show{display:block;}
+  .reminder-banner .rb-text{font-size:13px;color:#7A4419;margin-bottom:8px;line-height:1.4;}
+  .reminder-banner .rb-actions{display:flex;gap:6px;flex-wrap:wrap;}
+  .reminder-banner button{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    border:1px solid #E7C9A6;
+    background:#fff;
+    border-radius:8px;
+    padding:6px 9px;
+    cursor:pointer;
+    color:#7A4419;
+  }
+
+  .settings-toggle{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    color:var(--accent-strong);
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:10px 14px;
+    cursor:pointer;
+    margin-bottom:10px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+  }
+  .settings-toggle::after{content:'\25BE'; color:var(--muted); font-size:10px;}
+  .settings-toggle.open::after{content:'\25B4';}
+  .settings-panel{
+    display:none;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:16px;
+    margin-bottom:20px;
+    box-shadow:var(--shadow);
+  }
+  .settings-panel.open{display:block;}
+  .settings-row{margin-bottom:14px;}
+  .settings-row:last-child{margin-bottom:0;}
+  .settings-row label{
+    display:block;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;
+    text-transform:uppercase;
+    letter-spacing:.05em;
+    color:var(--muted);
+    margin-bottom:6px;
+  }
+  .settings-hint{
+    font-size:11.5px;
+    color:var(--muted);
+    margin-top:6px;
+    line-height:1.4;
+  }
+  .pill-btn{
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+    font-weight:600;
+    background:var(--accent-soft);
+    color:var(--accent-strong);
+    border:1px solid #CFDFC7;
+    border-radius:20px;
+    padding:8px 14px;
+    cursor:pointer;
+  }
+  .pill-btn:disabled{opacity:.5;cursor:not-allowed;}
+  .times-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .time-field{
+    display:flex;flex-direction:column;gap:4px;
+    background:var(--surface-2);border:1px solid var(--border);
+    border-radius:10px;padding:8px 10px;
+  }
+  .time-field span{font-size:12px;color:var(--text);}
+  .time-field input{
+    border:none;background:none;font-family:'IBM Plex Mono',monospace;
+    font-size:14px;color:var(--accent-strong);padding:0;width:100%;
+  }
+  .settings-row select, .settings-row input[type=text]{
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:8px 10px;
+    background:var(--surface-2);
+    color:var(--text);
+    width:100%;
+    margin-top:6px;
+  }
+  .meds-manage-list{display:flex;flex-direction:column;gap:6px;margin-bottom:10px;}
+  .med-manage-item{
+    display:flex;align-items:center;justify-content:space-between;
+    background:var(--surface-2);border:1px solid var(--border);
+    border-radius:8px;padding:7px 10px;font-size:13px;
+  }
+  .med-del-btn{
+    background:none;border:none;color:var(--warn);cursor:pointer;font-size:13px;padding:0 4px;
+  }
+  .med-add-form{
+    display:flex;flex-direction:column;gap:8px;
+    background:var(--surface-2);border:1px dashed var(--border);
+    border-radius:10px;padding:10px;
+  }
+  .med-add-form input{
+    font-family:'Inter',sans-serif;font-size:13px;
+    border:1px solid var(--border);border-radius:8px;
+    padding:8px 10px;background:var(--surface);color:var(--text);width:100%;
+  }
+  .med-add-row2{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;}
+  .settings-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
+  .settings-actions button{
+    flex:1 1 auto;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11.5px;
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:9px 10px;
+    cursor:pointer;
+    color:var(--accent-strong);
+  }
+
+  .week{
+    display:flex;
+    gap:6px;
+    margin:0 0 26px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:14px;
+    box-shadow:var(--shadow);
+  }
+  .week-day{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:8px;
+  }
+  .week-day .dow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10px;
+    color:var(--muted);
+    text-transform:uppercase;
+    letter-spacing:.05em;
+  }
+  .week-bar{
+    width:100%;
+    height:34px;
+    border-radius:8px;
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    position:relative;
+    overflow:hidden;
+  }
+  .week-bar-fill{
+    position:absolute;
+    bottom:0;left:0;right:0;
+    background:var(--accent);
+    transition:height .4s ease;
+  }
+  .week-bar-fill-skip{
+    position:absolute;
+    left:0;right:0;
+    background:var(--warn);
+    opacity:.75;
+    transition:height .4s ease, bottom .4s ease;
+  }
+  .week-day.today .week-bar{border-color:var(--accent-strong);border-width:1.5px;}
+  .week-day .num{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10px;
+    color:var(--muted);
+  }
+
+  .summary{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    margin-bottom:18px;
+    padding:0 2px;
+  }
+  .summary .count{
+    font-family:'Fraunces',serif;
+    font-size:19px;
+    font-weight:500;
+  }
+  .summary .count b{color:var(--accent-strong);}
+  .streak-badge{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    color:var(--warn);
+    margin-left:8px;
+  }
+  .reset-link{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    color:var(--muted);
+    background:none;
+    border:none;
+    text-decoration:underline;
+    cursor:pointer;
+    padding:0;
+  }
+
+  .slot-section{margin-bottom:22px;}
+  .slot-header{
+    display:flex;
+    align-items:baseline;
+    gap:8px;
+    margin:0 2px 10px;
+  }
+  .slot-header .icon{font-size:15px;line-height:1;}
+  .slot-title{
+    font-family:'Fraunces',serif;
+    font-weight:500;
+    font-size:16.5px;
+    color:var(--accent-strong);
+  }
+  .slot-header .slot-count{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    color:var(--muted);
+    margin-left:auto;
+  }
+  .slot-empty{
+    font-size:12.5px;
+    color:var(--muted);
+    padding:10px 4px;
+    font-style:italic;
+  }
+
+  .list{display:flex;flex-direction:column;gap:9px;}
+  .med{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:12px 14px 12px 12px;
+    display:flex;
+    align-items:center;
+    gap:13px;
+    box-shadow:var(--shadow);
+    transition: background .2s ease, border-color .2s ease, opacity .2s ease;
+  }
+  .med.taken{
+    background:var(--accent-soft);
+    border-color:#CFDFC7;
+  }
+  .med.skipped{opacity:.6;}
+  .check{
+    flex:0 0 auto;
+    width:30px;height:30px;
+    border-radius:50%;
+    border:1.5px solid var(--border);
+    background:var(--surface-2);
+    cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    transition: all .15s ease;
+    padding:0;
+  }
+  .check svg{width:15px;height:15px;opacity:0;transform:scale(.6);transition:all .15s ease;}
+  .med.taken .check{background:var(--accent);border-color:var(--accent);}
+  .med.taken .check svg{opacity:1;transform:scale(1);}
+  .med.skipped .check{border-style:dashed;}
+  .check:active{transform:scale(.92);}
+
+  .med-body{flex:1;min-width:0;}
+  .med-name{
+    font-size:15.5px;
+    font-weight:600;
+    line-height:1.25;
+  }
+  .med.taken .med-name{color:var(--accent-strong);}
+  .med-meta{
+    font-size:12.5px;
+    color:var(--muted);
+    margin-top:2px;
+  }
+  .skip-tag{color:var(--warn); font-style:italic;}
+  .slot-select{
+    margin-top:6px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;
+    color:var(--accent-strong);
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:3px 6px;
+    cursor:pointer;
+  }
+  .req-btn{
+    display:block;
+    margin-top:8px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;
+    background:var(--warn-soft);
+    color:#7A4419;
+    border:1px solid #E7C9A6;
+    border-radius:6px;
+    padding:4px 8px;
+    cursor:pointer;
+  }
+  .req-btn.sent{background:var(--accent-soft);color:var(--accent-strong);border-color:#CFDFC7;}
+  .med-stock{
+    flex:0 0 auto;
+    text-align:right;
+    font-family:'IBM Plex Mono',monospace;
+  }
+  .med-stock .days{
+    font-size:15px;
+    font-weight:600;
+    color:var(--accent-strong);
+  }
+  .med-stock.low .days{color:var(--warn);}
+  .med-stock .lbl{
+    font-size:9.5px;
+    color:var(--muted);
+    text-transform:uppercase;
+    letter-spacing:.04em;
+  }
+
+  .low-banner{
+    display:none;
+    margin-top:16px;
+    background:var(--warn-soft);
+    border:1px solid #E7C9A6;
+    color:#7A4419;
+    border-radius:12px;
+    padding:11px 14px;
+    font-size:13px;
+    line-height:1.4;
+  }
+  .low-banner.show{display:block;}
+  .low-banner b{font-weight:600;}
+
+  footer{
+    margin-top:30px;
+    text-align:center;
+    font-size:11.5px;
+    color:var(--muted);
+    font-family:'IBM Plex Mono',monospace;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none !important;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Promemoria quotidiano</div>
+    <h1>Medicinali</h1>
+    <div class="date-line" id="dateLine"></div>
+  </header>
+
+  <div class="reminder-banner" id="reminderBanner"></div>
+
+  <div class="settings-toggle" id="settingsToggle">&#9881;&#65039; Promemoria &amp; impostazioni</div>
+  <div class="settings-panel" id="settingsPanel"></div>
+
+  <div class="week" id="weekStrip"></div>
+
+  <div class="summary">
+    <div class="count" id="summaryCount"></div>
+    <button class="reset-link" id="resetBtn" title="Riporta la scorta ai valori iniziali">ripristina scorte</button>
+  </div>
+
+  <div id="slots"></div>
+
+  <div class="low-banner" id="lowBanner"></div>
+
+  <footer>Dati salvati solo su questo dispositivo &middot; gestiscili in &#9881;&#65039; impostazioni</footer>
+</div>
+
+<script>
+// Elenco di esempio mostrato al primo avvio: questo file è pensato per stare in un
+// repository pubblico, quindi NON contiene alcun dato reale. Il tuo elenco vero si
+// gestisce dalla sezione "I tuoi farmaci" nelle impostazioni, oppure importando un
+// backup: resta salvato solo nel tuo browser, mai nel codice pubblicato.
+const DEFAULT_MEDS = [
+  { name:"Farmaco di esempio A", tipo:null, perDay:1, perPack:28, stock:28 },
+  { name:"Farmaco di esempio B", tipo:null, perDay:1, perPack:30, stock:30 },
+  { name:"Farmaco di esempio C", tipo:null, perDay:1, perPack:28, stock:28 },
+];
+let MEDS = [];
+const LOW_STOCK_DAYS = 10;
+const REMINDER_REPEAT_MS = 20 * 60000; // ri-avvisa ogni 20 min se non risolto
+
+const SLOTS = [
+  { id:'mattina',     label:'Mattina',     icon:'☀️' },
+  { id:'mezzogiorno', label:'Mezzogiorno', icon:'🌤️' },
+  { id:'pomeriggio',  label:'Pomeriggio',  icon:'🌥️' },
+  { id:'sera',        label:'Sera',        icon:'🌙' },
+];
+const DEFAULT_SLOT = 'mattina';
+
+function todayKey(d = new Date()){
+  return d.toISOString().slice(0,10);
+}
+function dayKeyOffset(offset){
+  const d = new Date();
+  d.setDate(d.getDate() + offset);
+  return todayKey(d);
+}
+function fmtShortDate(key){
+  const [y,m,d] = key.split('-');
+  return `${d}/${m}`;
+}
+function pad(n){ return n < 10 ? '0' + n : '' + n; }
+const DOW = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
+
+let stockState = null;
+let checksState = {};
+let slotState = {};
+let skippedState = {};
+let requestsState = {};
+let reminderState = {};
+let settings = {
+  slotTimes: { mattina:'08:00', mezzogiorno:'13:00', pomeriggio:'16:30', sera:'20:30' },
+  contattoTipo: 'email',
+  contattoValore: '',
+  notificheAttive: false
+};
+
+/* ---------- storage: usa window.storage se presente (host), altrimenti localStorage ---------- */
+async function storageGet(key){
+  try{
+    if(window.storage && typeof window.storage.get === 'function'){
+      const r = await window.storage.get(key, false);
+      return r ? r.value : null;
+    }
+  }catch(e){ /* passa al fallback */ }
+  try{ return localStorage.getItem(key); }catch(e){ return null; }
+}
+async function storageSet(key, value){
+  try{
+    if(window.storage && typeof window.storage.set === 'function'){
+      await window.storage.set(key, value, false);
+      return;
+    }
+  }catch(e){ /* passa al fallback */ }
+  try{ localStorage.setItem(key, value); }catch(e){ console.error('Impossibile salvare', key, e); }
+}
+async function storageGetJSON(key, fallback){
+  const raw = await storageGet(key);
+  if(raw === null || raw === undefined) return fallback;
+  try{ return JSON.parse(raw); }catch(e){ return fallback; }
+}
+
+async function loadState(){
+  MEDS = await storageGetJSON('meds-list', JSON.parse(JSON.stringify(DEFAULT_MEDS)));
+  stockState = await storageGetJSON('meds-stock', Object.fromEntries(MEDS.map(m=>[m.name, m.stock])));
+  checksState = await storageGetJSON('meds-checks', {});
+  slotState = await storageGetJSON('meds-slots', {});
+  skippedState = await storageGetJSON('meds-skipped', {});
+  requestsState = await storageGetJSON('meds-requests', {});
+  reminderState = await storageGetJSON('meds-reminders', {});
+  const loadedSettings = await storageGetJSON('meds-settings', null);
+  if(loadedSettings){
+    settings = Object.assign({}, settings, loadedSettings, {
+      slotTimes: Object.assign({}, settings.slotTimes, loadedSettings.slotTimes || {})
+    });
+  }
+  MEDS.forEach(m=>{
+    if(!slotState[m.name]) slotState[m.name] = DEFAULT_SLOT;
+    if(stockState[m.name] === undefined) stockState[m.name] = m.stock;
+  });
+}
+
+async function saveMedsList(){ await storageSet('meds-list', JSON.stringify(MEDS)); }
+async function saveStock(){ await storageSet('meds-stock', JSON.stringify(stockState)); }
+async function saveChecks(){ await storageSet('meds-checks', JSON.stringify(checksState)); }
+async function saveSlots(){ await storageSet('meds-slots', JSON.stringify(slotState)); }
+async function saveSkipped(){ await storageSet('meds-skipped', JSON.stringify(skippedState)); }
+async function saveRequests(){ await storageSet('meds-requests', JSON.stringify(requestsState)); }
+async function saveReminderState(){ await storageSet('meds-reminders', JSON.stringify(reminderState)); }
+async function saveSettings(){ await storageSet('meds-settings', JSON.stringify(settings)); }
+
+/* ---------- stato prese / saltate ---------- */
+function isTaken(dateKey, name){
+  return !!(checksState[dateKey] && checksState[dateKey][name]);
+}
+function countTaken(dateKey){
+  const day = checksState[dateKey];
+  if(!day) return 0;
+  return Object.values(day).filter(Boolean).length;
+}
+function isSkipped(dateKey, name){
+  return !!(skippedState[dateKey] && skippedState[dateKey][name]);
+}
+function countSkipped(dateKey){
+  const day = skippedState[dateKey];
+  if(!day) return 0;
+  return Object.values(day).filter(Boolean).length;
+}
+
+async function toggleMed(name){
+  const key = todayKey();
+  if(!checksState[key]) checksState[key] = {};
+  const med = MEDS.find(m=>m.name===name);
+  const wasTaken = !!checksState[key][name];
+
+  if(wasTaken){
+    delete checksState[key][name];
+    stockState[name] = (stockState[name] ?? med.stock) + med.perDay;
+  } else {
+    checksState[key][name] = true;
+    stockState[name] = Math.max(0, (stockState[name] ?? med.stock) - med.perDay);
+    if(skippedState[key]) delete skippedState[key][name];
+  }
+  await saveChecks();
+  await saveStock();
+  await saveSkipped();
+  render();
+}
+
+async function changeSlot(name, newSlot){
+  slotState[name] = newSlot;
+  await saveSlots();
+  render();
+}
+
+async function resetStock(){
+  stockState = Object.fromEntries(MEDS.map(m=>[m.name, m.stock]));
+  await saveStock();
+  render();
+}
+
+async function addMed(data){
+  const name = (data.name || '').trim();
+  if(!name || MEDS.some(m=>m.name===name)) return false;
+  const med = {
+    name,
+    tipo: (data.tipo || '').trim() || null,
+    perDay: Math.max(1, parseInt(data.perDay, 10) || 1),
+    perPack: Math.max(1, parseInt(data.perPack, 10) || 1),
+    stock: Math.max(0, parseInt(data.stock, 10) || 0)
+  };
+  MEDS.push(med);
+  stockState[med.name] = med.stock;
+  slotState[med.name] = data.slot || DEFAULT_SLOT;
+  await Promise.all([saveMedsList(), saveStock(), saveSlots()]);
+  return true;
+}
+
+async function deleteMed(name){
+  MEDS = MEDS.filter(m=>m.name!==name);
+  delete stockState[name];
+  delete slotState[name];
+  delete requestsState[name];
+  await Promise.all([saveMedsList(), saveStock(), saveSlots(), saveRequests()]);
+}
+
+function computeStreak(){
+  if(MEDS.length === 0) return 0;
+  let streak = 0;
+  let i = 0;
+  if(countTaken(todayKey()) === MEDS.length){ streak = 1; i = -1; } else { i = -1; }
+  while(true){
+    const key = dayKeyOffset(i);
+    if(countTaken(key) === MEDS.length){ streak++; i--; } else break;
+    if(streak > 365) break;
+  }
+  return streak;
+}
+
+/* ---------- richiesta ricetta ---------- */
+function requestPrescription(name){
+  const med = MEDS.find(m=>m.name===name);
+  const stock = stockState[name] ?? med.stock;
+  const daysLeft = med.perDay > 0 ? Math.floor(stock / med.perDay) : stock;
+  const subject = `Richiesta ricetta - ${name}`;
+  const bodyText = `Buongiorno,\n\nchiedo il rinnovo della ricetta per ${name}${med.tipo ? ' (' + med.tipo + ')' : ''}.\nScorta residua: circa ${daysLeft} giorni.\n\nGrazie.`;
+
+  if(settings.contattoTipo === 'whatsapp' && settings.contattoValore){
+    const num = settings.contattoValore.replace(/[^0-9+]/g, '');
+    window.open(`https://wa.me/${num}?text=${encodeURIComponent(bodyText)}`, '_blank');
+  } else {
+    const mailto = `mailto:${settings.contattoValore || ''}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyText)}`;
+    window.location.href = mailto;
+  }
+  requestsState[name] = { date: todayKey() };
+  saveRequests();
+  render();
+}
+
+/* ---------- promemoria in-app (mentre la pagina è aperta) ---------- */
+function parseTimeToday(hhmm){
+  const [h, m] = (hhmm || '08:00').split(':').map(Number);
+  const d = new Date();
+  d.setHours(h, m, 0, 0);
+  return d;
+}
+function slotAllResolved(slotId, key){
+  const meds = MEDS.filter(m=>slotState[m.name]===slotId);
+  if(meds.length===0) return true;
+  return meds.every(m=>isTaken(key, m.name) || isSkipped(key, m.name));
+}
+
+function checkReminders(){
+  if(!settings.notificheAttive) return;
+  const now = Date.now();
+  const key = todayKey();
+  if(!reminderState[key]) reminderState[key] = {};
+
+  SLOTS.forEach(slot=>{
+    const meds = MEDS.filter(m=>slotState[m.name]===slot.id);
+    if(meds.length===0) return;
+    if(slotAllResolved(slot.id, key)) return;
+
+    const dueTime = parseTimeToday(settings.slotTimes[slot.id]).getTime();
+    const entry = reminderState[key][slot.id] || {};
+    const nextDue = entry.snoozeUntil || entry.nextRemindAt || dueTime;
+
+    if(now >= nextDue){
+      fireReminder(slot, meds, key);
+      reminderState[key][slot.id] = { nextRemindAt: now + REMINDER_REPEAT_MS, snoozeUntil: null };
+      saveReminderState();
+    }
+  });
+}
+
+function fireReminder(slot, meds, key){
+  const names = meds.filter(m=>!isTaken(key, m.name) && !isSkipped(key, m.name)).map(m=>m.name);
+  if(names.length===0) return;
+  showBanner(slot, names);
+  if('Notification' in window && Notification.permission === 'granted'){
+    try{
+      if(navigator.serviceWorker && navigator.serviceWorker.getRegistration){
+        navigator.serviceWorker.getRegistration().then(reg=>{
+          if(reg){
+            reg.showNotification(`Promemoria: ${slot.label}`, { body: names.join(', '), icon:'icon-192.png', tag:'meds-'+slot.id+'-'+key });
+          } else {
+            new Notification(`Promemoria: ${slot.label}`, { body: names.join(', '), icon:'icon-192.png' });
+          }
+        });
+      } else {
+        new Notification(`Promemoria: ${slot.label}`, { body: names.join(', '), icon:'icon-192.png' });
+      }
+    }catch(e){ console.error('Notifica non riuscita', e); }
+  }
+}
+
+function showBanner(slot, names){
+  const el = document.getElementById('reminderBanner');
+  el.innerHTML = `
+    <div class="rb-text"><b>${slot.icon} ${slot.label}</b> &mdash; ${names.join(', ')}</div>
+    <div class="rb-actions">
+      <button data-action="done" data-slot="${slot.id}">✔️ Tutte prese</button>
+      <button data-action="snooze" data-slot="${slot.id}">⏰ +15 min</button>
+      <button data-action="skip" data-slot="${slot.id}">⏭️ Salta oggi</button>
+    </div>`;
+  el.classList.add('show');
+  el.querySelectorAll('button').forEach(b=>b.addEventListener('click', onBannerAction));
+}
+function hideBanner(){
+  document.getElementById('reminderBanner').classList.remove('show');
+}
+
+async function onBannerAction(e){
+  const action = e.target.dataset.action;
+  const slotId = e.target.dataset.slot;
+  const key = todayKey();
+  const meds = MEDS.filter(m=>slotState[m.name]===slotId);
+
+  if(!reminderState[key]) reminderState[key] = {};
+
+  if(action==='done'){
+    for(const m of meds){ if(!isTaken(key, m.name)) await toggleMed(m.name); }
+    delete reminderState[key][slotId];
+  } else if(action==='snooze'){
+    reminderState[key][slotId] = { snoozeUntil: Date.now() + 15*60000, nextRemindAt: null };
+  } else if(action==='skip'){
+    if(!skippedState[key]) skippedState[key] = {};
+    meds.forEach(m=>{ if(!isTaken(key, m.name)) skippedState[key][m.name] = true; });
+    await saveSkipped();
+    delete reminderState[key][slotId];
+  }
+  await saveReminderState();
+  hideBanner();
+  render();
+}
+
+async function requestNotifPermission(){
+  if(!('Notification' in window)){
+    alert('Le notifiche non sono supportate su questo browser.');
+    return;
+  }
+  const perm = await Notification.requestPermission();
+  settings.notificheAttive = perm === 'granted';
+  await saveSettings();
+  updateNotifBtn();
+}
+async function onNotifBtnClick(){
+  if(!('Notification' in window)) return;
+  if(Notification.permission === 'default'){
+    await requestNotifPermission();
+  } else if(Notification.permission === 'granted'){
+    settings.notificheAttive = !settings.notificheAttive;
+    await saveSettings();
+    updateNotifBtn();
+  }
+}
+function updateNotifBtn(){
+  const notifBtn = document.getElementById('notifBtn');
+  if(!notifBtn) return;
+  if(!('Notification' in window)){
+    notifBtn.textContent = 'Non supportate su questo browser';
+    notifBtn.disabled = true;
+  } else if(Notification.permission === 'denied'){
+    notifBtn.textContent = '🚫 Bloccate (sblocca dalle impostazioni del browser)';
+    notifBtn.disabled = true;
+  } else if(Notification.permission === 'granted'){
+    notifBtn.textContent = settings.notificheAttive ? '🔔 Attive — tocca per disattivare' : '🔕 Disattivate — tocca per attivare';
+    notifBtn.disabled = false;
+  } else {
+    notifBtn.textContent = '🔔 Attiva notifiche';
+    notifBtn.disabled = false;
+  }
+}
+
+/* ---------- promemoria affidabile via calendario (.ics) ---------- */
+function toICSDate(d){
+  return d.getFullYear().toString() + pad(d.getMonth()+1) + pad(d.getDate())
+    + 'T' + pad(d.getHours()) + pad(d.getMinutes()) + pad(d.getSeconds());
+}
+function buildICS(){
+  const now = new Date();
+  let events = '';
+  SLOTS.forEach(slot=>{
+    const meds = MEDS.filter(m=>slotState[m.name]===slot.id);
+    if(meds.length===0) return;
+    const start = parseTimeToday(settings.slotTimes[slot.id]);
+    const end = new Date(start.getTime() + 5*60000);
+    const uid = `meds-${slot.id}-${Date.now()}-${Math.random().toString(36).slice(2)}@medicinali-giornalieri`;
+    const desc = meds.map(m=>m.name).join(', ');
+    events += [
+      'BEGIN:VEVENT',
+      `UID:${uid}`,
+      `DTSTAMP:${toICSDate(now)}`,
+      `DTSTART:${toICSDate(start)}`,
+      `DTEND:${toICSDate(end)}`,
+      'RRULE:FREQ=DAILY',
+      `SUMMARY:${slot.icon} Medicinali - ${slot.label}`,
+      `DESCRIPTION:${desc}`,
+      'BEGIN:VALARM',
+      'ACTION:DISPLAY',
+      `DESCRIPTION:${desc}`,
+      'TRIGGER:PT0M',
+      'END:VALARM',
+      'END:VEVENT',
+      ''
+    ].join('\r\n');
+  });
+  return [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Medicinali Giornalieri//IT',
+    'CALSCALE:GREGORIAN',
+    events,
+    'END:VCALENDAR'
+  ].join('\r\n');
+}
+function downloadICS(){
+  const ics = buildICS();
+  const blob = new Blob([ics], { type:'text/calendar' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'promemoria-medicinali.ics';
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+
+/* ---------- backup / esportazione dati ---------- */
+function exportData(){
+  const payload = {
+    exportedAt: new Date().toISOString(),
+    medsList: MEDS,
+    stockState, checksState, slotState, skippedState, requestsState, settings
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type:'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `medicinali-backup-${todayKey()}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+function importData(file){
+  const reader = new FileReader();
+  reader.onload = async (e)=>{
+    try{
+      const data = JSON.parse(e.target.result);
+      if(Array.isArray(data.medsList) && data.medsList.length) MEDS = data.medsList;
+      if(data.stockState) stockState = data.stockState;
+      if(data.checksState) checksState = data.checksState;
+      if(data.slotState) slotState = data.slotState;
+      if(data.skippedState) skippedState = data.skippedState;
+      if(data.requestsState) requestsState = data.requestsState;
+      if(data.settings) settings = Object.assign({}, settings, data.settings);
+      await Promise.all([saveMedsList(), saveStock(), saveChecks(), saveSlots(), saveSkipped(), saveRequests(), saveSettings()]);
+      renderSettings();
+      render();
+      alert('Dati importati con successo.');
+    }catch(err){
+      alert('File non valido o corrotto.');
+    }
+  };
+  reader.readAsText(file);
+}
+
+/* ---------- render ---------- */
+function renderHeader(){
+  const now = new Date();
+  const fmt = now.toLocaleDateString('it-IT', { weekday:'long', day:'numeric', month:'long' });
+  document.getElementById('dateLine').textContent = fmt;
+}
+
+function renderWeek(){
+  const el = document.getElementById('weekStrip');
+  el.innerHTML = '';
+  for(let i=-6; i<=0; i++){
+    const key = dayKeyOffset(i);
+    const d = new Date(); d.setDate(d.getDate()+i);
+    const taken = countTaken(key);
+    const skipped = countSkipped(key);
+    const takenPct = MEDS.length ? Math.round((taken / MEDS.length) * 100) : 0;
+    const skipPct = MEDS.length ? Math.round((skipped / MEDS.length) * 100) : 0;
+    const isToday = i === 0;
+
+    const cell = document.createElement('div');
+    cell.className = 'week-day' + (isToday ? ' today' : '');
+    cell.innerHTML = `
+      <div class="dow">${DOW[d.getDay()]}</div>
+      <div class="week-bar">
+        <div class="week-bar-fill" style="height:${takenPct}%"></div>
+        <div class="week-bar-fill-skip" style="height:${skipPct}%; bottom:${takenPct}%"></div>
+      </div>
+      <div class="num">${taken}/${MEDS.length}</div>
+    `;
+    el.appendChild(cell);
+  }
+}
+
+function medRow(med, key){
+  const taken = isTaken(key, med.name);
+  const skipped = !taken && isSkipped(key, med.name);
+  const stock = stockState[med.name] ?? med.stock;
+  const daysLeft = med.perDay > 0 ? Math.floor(stock / med.perDay) : stock;
+  const isLow = daysLeft <= LOW_STOCK_DAYS;
+  const reqInfo = requestsState[med.name];
+
+  const row = document.createElement('div');
+  row.className = 'med' + (taken ? ' taken' : '') + (skipped ? ' skipped' : '');
+  row.innerHTML = `
+    <button class="check" aria-label="Segna ${med.name} come presa" data-name="${med.name}">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M4 12.5L9.5 18L20 6" stroke="white" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div class="med-body">
+      <div class="med-name">${med.name}</div>
+      <div class="med-meta">${med.tipo ? med.tipo + ' &middot; ' : ''}${med.perDay} al giorno${skipped ? ' &middot; <span class="skip-tag">saltata oggi</span>' : ''}</div>
+      <select class="slot-select" data-name="${med.name}">
+        ${SLOTS.map(s=>`<option value="${s.id}" ${slotState[med.name]===s.id ? 'selected' : ''}>${s.icon} ${s.label}</option>`).join('')}
+      </select>
+      ${isLow ? (reqInfo
+          ? `<button class="req-btn sent" data-name="${med.name}">✓ Richiesta ${fmtShortDate(reqInfo.date)}</button>`
+          : `<button class="req-btn" data-name="${med.name}">📋 Richiedi ricetta</button>`)
+        : ''}
+    </div>
+    <div class="med-stock ${isLow ? 'low' : ''}">
+      <div class="days">${daysLeft}g</div>
+      <div class="lbl">scorta</div>
+    </div>
+  `;
+  row.querySelector('.check').addEventListener('click', ()=>toggleMed(med.name));
+  row.querySelector('.slot-select').addEventListener('change', (e)=>changeSlot(med.name, e.target.value));
+  const reqBtn = row.querySelector('.req-btn');
+  if(reqBtn){
+    reqBtn.addEventListener('click', ()=>{
+      if(reqBtn.classList.contains('sent')){
+        if(confirm('Segnare la richiesta come da rifare (annulla lo stato "inviata")?')){
+          delete requestsState[med.name];
+          saveRequests();
+          render();
+        }
+      } else {
+        requestPrescription(med.name);
+      }
+    });
+  }
+  return row;
+}
+
+function renderSlots(){
+  const key = todayKey();
+  const container = document.getElementById('slots');
+  container.innerHTML = '';
+  let lowStockNames = [];
+
+  SLOTS.forEach(slot=>{
+    const medsInSlot = MEDS.filter(m => slotState[m.name] === slot.id);
+
+    const section = document.createElement('div');
+    section.className = 'slot-section';
+
+    const takenInSlot = medsInSlot.filter(m=>isTaken(key, m.name)).length;
+
+    section.innerHTML = `
+      <div class="slot-header">
+        <span class="icon">${slot.icon}</span>
+        <span class="slot-title">${slot.label}</span>
+        <span class="slot-count">${takenInSlot}/${medsInSlot.length}</span>
+      </div>
+    `;
+
+    if(medsInSlot.length === 0){
+      const empty = document.createElement('div');
+      empty.className = 'slot-empty';
+      empty.textContent = 'Nessun medicinale in questa fascia.';
+      section.appendChild(empty);
+    } else {
+      const list = document.createElement('div');
+      list.className = 'list';
+      medsInSlot.forEach(med=>{
+        list.appendChild(medRow(med, key));
+        const stock = stockState[med.name] ?? med.stock;
+        const daysLeft = med.perDay > 0 ? Math.floor(stock / med.perDay) : stock;
+        if(daysLeft <= LOW_STOCK_DAYS) lowStockNames.push(med.name);
+      });
+      section.appendChild(list);
+    }
+
+    container.appendChild(section);
+  });
+
+  const banner = document.getElementById('lowBanner');
+  if(lowStockNames.length){
+    banner.classList.add('show');
+    banner.innerHTML = `<b>Scorta in esaurimento:</b> ${lowStockNames.join(', ')}. Meno di ${LOW_STOCK_DAYS} giorni rimanenti — usa "Richiedi ricetta" qui sotto o nelle impostazioni.`;
+  } else {
+    banner.classList.remove('show');
+  }
+}
+
+function renderSummary(){
+  const key = todayKey();
+  if(MEDS.length === 0){
+    document.getElementById('summaryCount').innerHTML = `Nessun farmaco configurato — aggiungilo in &#9881;&#65039; impostazioni`;
+    return;
+  }
+  const taken = countTaken(key);
+  const streak = computeStreak();
+  document.getElementById('summaryCount').innerHTML = `<b>${taken}</b> / ${MEDS.length} prese oggi` + (streak>=2 ? ` <span class="streak-badge">🔥 ${streak}g</span>` : '');
+}
+
+function render(){
+  renderHeader();
+  renderWeek();
+  renderSlots();
+  renderSummary();
+}
+
+function renderSettings(){
+  const panel = document.getElementById('settingsPanel');
+  panel.innerHTML = `
+    <div class="settings-row">
+      <label>I tuoi farmaci</label>
+      <div class="meds-manage-list">
+        ${MEDS.map(m=>`<div class="med-manage-item"><span>${m.name}</span><button class="med-del-btn" data-name="${m.name}" title="Rimuovi">✕</button></div>`).join('') || '<div class="settings-hint">Nessun farmaco configurato.</div>'}
+      </div>
+      <div class="med-add-form">
+        <input type="text" id="newMedName" placeholder="Nome farmaco">
+        <input type="text" id="newMedTipo" placeholder="Categoria (opzionale)">
+        <div class="med-add-row2">
+          <input type="number" id="newMedPerDay" placeholder="Dosi/giorno" min="1" value="1">
+          <input type="number" id="newMedPerPack" placeholder="Unità/confezione" min="1">
+          <input type="number" id="newMedStock" placeholder="Scorta attuale" min="0">
+        </div>
+        <button id="addMedBtn" class="pill-btn">+ Aggiungi farmaco</button>
+      </div>
+      <div class="settings-hint">Il tuo elenco resta solo in questo browser (o nei file di backup che esporti): non viene mai scritto nel codice pubblicato su GitHub.</div>
+    </div>
+    <div class="settings-row">
+      <label>Notifiche nel browser</label>
+      <button id="notifBtn" class="pill-btn"></button>
+      <div class="settings-hint">Funzionano in modo affidabile solo mentre questa pagina/app è aperta. Per un promemoria garantito anche ad app chiusa, usa "Genera promemoria calendario" qui sotto.</div>
+    </div>
+    <div class="settings-row">
+      <label>Orari fasce (per il promemoria)</label>
+      <div class="times-row">
+        ${SLOTS.map(s=>`<div class="time-field"><span>${s.icon} ${s.label}</span><input type="time" data-slot="${s.id}" value="${settings.slotTimes[s.id]}"></div>`).join('')}
+      </div>
+    </div>
+    <div class="settings-row">
+      <label>Contatto per richiesta ricetta</label>
+      <select id="contattoTipo">
+        <option value="email" ${settings.contattoTipo==='email' ? 'selected' : ''}>Email</option>
+        <option value="whatsapp" ${settings.contattoTipo==='whatsapp' ? 'selected' : ''}>WhatsApp</option>
+      </select>
+      <input type="text" id="contattoValore" placeholder="es. medico@email.it oppure +39 333 1234567" value="${settings.contattoValore || ''}">
+    </div>
+    <div class="settings-row">
+      <label>Promemoria affidabile (calendario)</label>
+      <div class="settings-actions">
+        <button id="icsBtn">📅 Genera promemoria calendario (.ics)</button>
+      </div>
+      <div class="settings-hint">Scarica un file da importare una volta sola in Calendario (Apple/Google/Outlook): creerà una sveglia giornaliera ricorrente per ogni fascia, con notifica del sistema operativo anche ad app chiusa.</div>
+    </div>
+    <div class="settings-row">
+      <label>Dati</label>
+      <div class="settings-actions">
+        <button id="exportBtn">⬇️ Esporta backup</button>
+        <button id="importBtnTrigger">⬆️ Importa backup</button>
+        <input type="file" id="importFile" accept="application/json" hidden>
+      </div>
+    </div>
+  `;
+  updateNotifBtn();
+
+  panel.querySelectorAll('.time-field input[type=time]').forEach(inp=>{
+    inp.addEventListener('change', async (e)=>{
+      settings.slotTimes[e.target.dataset.slot] = e.target.value;
+      await saveSettings();
+    });
+  });
+  panel.querySelectorAll('.med-del-btn').forEach(b=>{
+    b.addEventListener('click', async ()=>{
+      if(confirm(`Rimuovere ${b.dataset.name} dall'elenco?`)){
+        await deleteMed(b.dataset.name);
+        renderSettings();
+        render();
+      }
+    });
+  });
+  document.getElementById('addMedBtn').addEventListener('click', async ()=>{
+    const name = document.getElementById('newMedName').value.trim();
+    const tipo = document.getElementById('newMedTipo').value;
+    const perDay = document.getElementById('newMedPerDay').value;
+    const perPack = document.getElementById('newMedPerPack').value;
+    const stock = document.getElementById('newMedStock').value;
+    if(!name){ alert('Inserisci il nome del farmaco.'); return; }
+    const ok = await addMed({ name, tipo, perDay, perPack, stock });
+    if(!ok){ alert('Esiste già un farmaco con questo nome.'); return; }
+    renderSettings();
+    render();
+  });
+  document.getElementById('notifBtn').addEventListener('click', onNotifBtnClick);
+  document.getElementById('contattoTipo').addEventListener('change', async (e)=>{
+    settings.contattoTipo = e.target.value;
+    await saveSettings();
+  });
+  document.getElementById('contattoValore').addEventListener('change', async (e)=>{
+    settings.contattoValore = e.target.value.trim();
+    await saveSettings();
+  });
+  document.getElementById('icsBtn').addEventListener('click', downloadICS);
+  document.getElementById('exportBtn').addEventListener('click', exportData);
+  document.getElementById('importBtnTrigger').addEventListener('click', ()=>document.getElementById('importFile').click());
+  document.getElementById('importFile').addEventListener('change', (e)=>{
+    if(e.target.files[0]) importData(e.target.files[0]);
+    e.target.value = '';
+  });
+}
+
+document.getElementById('settingsToggle').addEventListener('click', (e)=>{
+  e.currentTarget.classList.toggle('open');
+  document.getElementById('settingsPanel').classList.toggle('open');
+});
+
+document.getElementById('resetBtn').addEventListener('click', ()=>{
+  if(confirm('Ripristinare le scorte ai valori iniziali?')){
+    resetStock();
+  }
+});
+
+(async function init(){
+  await loadState();
+  render();
+  renderSettings();
+
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('sw.js').catch(e=>console.error('Registrazione service worker fallita', e));
+  }
+
+  checkReminders();
+  setInterval(checkReminders, 30000);
+})();
+</script>
+</body>
+</html>

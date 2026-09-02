@@ -1,6 +1,6 @@
 const CACHE_NAME = 'meds-cache-v1';
 const ASSETS = [
-  './medicinali-giornalieri.html',
+  './index.html',
   './manifest.json',
   './icon-192.png',
   './icon-512.png'
@@ -38,7 +38,7 @@ self.addEventListener('notificationclick', (event) => {
       if (clientsArr.length > 0) {
         clientsArr[0].focus();
       } else {
-        self.clients.openWindow('./medicinali-giornalieri.html');
+        self.clients.openWindow('./index.html');
       }
     })
   );
