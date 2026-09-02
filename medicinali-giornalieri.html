@@ -167,6 +167,26 @@
     width:100%;
     margin-top:6px;
   }
+  .meds-manage-list{display:flex;flex-direction:column;gap:6px;margin-bottom:10px;}
+  .med-manage-item{
+    display:flex;align-items:center;justify-content:space-between;
+    background:var(--surface-2);border:1px solid var(--border);
+    border-radius:8px;padding:7px 10px;font-size:13px;
+  }
+  .med-del-btn{
+    background:none;border:none;color:var(--warn);cursor:pointer;font-size:13px;padding:0 4px;
+  }
+  .med-add-form{
+    display:flex;flex-direction:column;gap:8px;
+    background:var(--surface-2);border:1px dashed var(--border);
+    border-radius:10px;padding:10px;
+  }
+  .med-add-form input{
+    font-family:'Inter',sans-serif;font-size:13px;
+    border:1px solid var(--border);border-radius:8px;
+    padding:8px 10px;background:var(--surface);color:var(--text);width:100%;
+  }
+  .med-add-row2{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;}
   .settings-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
   .settings-actions button{
     flex:1 1 auto;
@@ -431,21 +451,20 @@
 
   <div class="low-banner" id="lowBanner"></div>
 
-  <footer>Dati sincronizzati manualmente dal database Notion &middot; Riposto</footer>
+  <footer>Dati salvati solo su questo dispositivo &middot; gestiscili in &#9881;&#65039; impostazioni</footer>
 </div>
 
 <script>
-const MEDS = [
-  { name:"Cardioaspirina", tipo:"Antinfiammatori", perDay:1, perPack:30, stock:60 },
-  { name:"Tamsulosin",     tipo:null, perDay:1, perPack:20, stock:40 },
-  { name:"Ezateros",       tipo:null, perDay:1, perPack:28, stock:56 },
-  { name:"Bisopropolo",    tipo:null, perDay:1, perPack:28, stock:55 },
-  { name:"Lisiprinol",     tipo:null, perDay:1, perPack:28, stock:56 },
-  { name:"Allopurinolo",   tipo:null, perDay:1, perPack:28, stock:56 },
-  { name:"Copidogrel",     tipo:null, perDay:1, perPack:28, stock:56 },
-  { name:"Forxiga",        tipo:null, perDay:1, perPack:28, stock:61 },
-  { name:"Folina",         tipo:null, perDay:1, perPack:60, stock:77 },
+// Elenco di esempio mostrato al primo avvio: questo file è pensato per stare in un
+// repository pubblico, quindi NON contiene alcun dato reale. Il tuo elenco vero si
+// gestisce dalla sezione "I tuoi farmaci" nelle impostazioni, oppure importando un
+// backup: resta salvato solo nel tuo browser, mai nel codice pubblicato.
+const DEFAULT_MEDS = [
+  { name:"Farmaco di esempio A", tipo:null, perDay:1, perPack:28, stock:28 },
+  { name:"Farmaco di esempio B", tipo:null, perDay:1, perPack:30, stock:30 },
+  { name:"Farmaco di esempio C", tipo:null, perDay:1, perPack:28, stock:28 },
 ];
+let MEDS = [];
 const LOW_STOCK_DAYS = 10;
 const REMINDER_REPEAT_MS = 20 * 60000; // ri-avvisa ogni 20 min se non risolto
 
@@ -511,6 +530,7 @@ async function storageGetJSON(key, fallback){
 }
 
 async function loadState(){
+  MEDS = await storageGetJSON('meds-list', JSON.parse(JSON.stringify(DEFAULT_MEDS)));
   stockState = await storageGetJSON('meds-stock', Object.fromEntries(MEDS.map(m=>[m.name, m.stock])));
   checksState = await storageGetJSON('meds-checks', {});
   slotState = await storageGetJSON('meds-slots', {});
@@ -523,9 +543,13 @@ async function loadState(){
       slotTimes: Object.assign({}, settings.slotTimes, loadedSettings.slotTimes || {})
     });
   }
-  MEDS.forEach(m=>{ if(!slotState[m.name]) slotState[m.name] = DEFAULT_SLOT; });
+  MEDS.forEach(m=>{
+    if(!slotState[m.name]) slotState[m.name] = DEFAULT_SLOT;
+    if(stockState[m.name] === undefined) stockState[m.name] = m.stock;
+  });
 }
 
+async function saveMedsList(){ await storageSet('meds-list', JSON.stringify(MEDS)); }
 async function saveStock(){ await storageSet('meds-stock', JSON.stringify(stockState)); }
 async function saveChecks(){ await storageSet('meds-checks', JSON.stringify(checksState)); }
 async function saveSlots(){ await storageSet('meds-slots', JSON.stringify(slotState)); }
@@ -584,7 +608,33 @@ async function resetStock(){
   render();
 }
 
+async function addMed(data){
+  const name = (data.name || '').trim();
+  if(!name || MEDS.some(m=>m.name===name)) return false;
+  const med = {
+    name,
+    tipo: (data.tipo || '').trim() || null,
+    perDay: Math.max(1, parseInt(data.perDay, 10) || 1),
+    perPack: Math.max(1, parseInt(data.perPack, 10) || 1),
+    stock: Math.max(0, parseInt(data.stock, 10) || 0)
+  };
+  MEDS.push(med);
+  stockState[med.name] = med.stock;
+  slotState[med.name] = data.slot || DEFAULT_SLOT;
+  await Promise.all([saveMedsList(), saveStock(), saveSlots()]);
+  return true;
+}
+
+async function deleteMed(name){
+  MEDS = MEDS.filter(m=>m.name!==name);
+  delete stockState[name];
+  delete slotState[name];
+  delete requestsState[name];
+  await Promise.all([saveMedsList(), saveStock(), saveSlots(), saveRequests()]);
+}
+
 function computeStreak(){
+  if(MEDS.length === 0) return 0;
   let streak = 0;
   let i = 0;
   if(countTaken(todayKey()) === MEDS.length){ streak = 1; i = -1; } else { i = -1; }
@@ -807,6 +857,7 @@ function downloadICS(){
 function exportData(){
   const payload = {
     exportedAt: new Date().toISOString(),
+    medsList: MEDS,
     stockState, checksState, slotState, skippedState, requestsState, settings
   };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type:'application/json' });
@@ -821,13 +872,14 @@ function importData(file){
   reader.onload = async (e)=>{
     try{
       const data = JSON.parse(e.target.result);
+      if(Array.isArray(data.medsList) && data.medsList.length) MEDS = data.medsList;
       if(data.stockState) stockState = data.stockState;
       if(data.checksState) checksState = data.checksState;
       if(data.slotState) slotState = data.slotState;
       if(data.skippedState) skippedState = data.skippedState;
       if(data.requestsState) requestsState = data.requestsState;
       if(data.settings) settings = Object.assign({}, settings, data.settings);
-      await Promise.all([saveStock(), saveChecks(), saveSlots(), saveSkipped(), saveRequests(), saveSettings()]);
+      await Promise.all([saveMedsList(), saveStock(), saveChecks(), saveSlots(), saveSkipped(), saveRequests(), saveSettings()]);
       renderSettings();
       render();
       alert('Dati importati con successo.');
@@ -853,8 +905,8 @@ function renderWeek(){
     const d = new Date(); d.setDate(d.getDate()+i);
     const taken = countTaken(key);
     const skipped = countSkipped(key);
-    const takenPct = Math.round((taken / MEDS.length) * 100);
-    const skipPct = Math.round((skipped / MEDS.length) * 100);
+    const takenPct = MEDS.length ? Math.round((taken / MEDS.length) * 100) : 0;
+    const skipPct = MEDS.length ? Math.round((skipped / MEDS.length) * 100) : 0;
     const isToday = i === 0;
 
     const cell = document.createElement('div');
@@ -973,6 +1025,10 @@ function renderSlots(){
 
 function renderSummary(){
   const key = todayKey();
+  if(MEDS.length === 0){
+    document.getElementById('summaryCount').innerHTML = `Nessun farmaco configurato — aggiungilo in &#9881;&#65039; impostazioni`;
+    return;
+  }
   const taken = countTaken(key);
   const streak = computeStreak();
   document.getElementById('summaryCount').innerHTML = `<b>${taken}</b> / ${MEDS.length} prese oggi` + (streak>=2 ? ` <span class="streak-badge">🔥 ${streak}g</span>` : '');
@@ -988,6 +1044,23 @@ function render(){
 function renderSettings(){
   const panel = document.getElementById('settingsPanel');
   panel.innerHTML = `
+    <div class="settings-row">
+      <label>I tuoi farmaci</label>
+      <div class="meds-manage-list">
+        ${MEDS.map(m=>`<div class="med-manage-item"><span>${m.name}</span><button class="med-del-btn" data-name="${m.name}" title="Rimuovi">✕</button></div>`).join('') || '<div class="settings-hint">Nessun farmaco configurato.</div>'}
+      </div>
+      <div class="med-add-form">
+        <input type="text" id="newMedName" placeholder="Nome farmaco">
+        <input type="text" id="newMedTipo" placeholder="Categoria (opzionale)">
+        <div class="med-add-row2">
+          <input type="number" id="newMedPerDay" placeholder="Dosi/giorno" min="1" value="1">
+          <input type="number" id="newMedPerPack" placeholder="Unità/confezione" min="1">
+          <input type="number" id="newMedStock" placeholder="Scorta attuale" min="0">
+        </div>
+        <button id="addMedBtn" class="pill-btn">+ Aggiungi farmaco</button>
+      </div>
+      <div class="settings-hint">Il tuo elenco resta solo in questo browser (o nei file di backup che esporti): non viene mai scritto nel codice pubblicato su GitHub.</div>
+    </div>
     <div class="settings-row">
       <label>Notifiche nel browser</label>
       <button id="notifBtn" class="pill-btn"></button>
@@ -1030,6 +1103,27 @@ function renderSettings(){
       settings.slotTimes[e.target.dataset.slot] = e.target.value;
       await saveSettings();
     });
+  });
+  panel.querySelectorAll('.med-del-btn').forEach(b=>{
+    b.addEventListener('click', async ()=>{
+      if(confirm(`Rimuovere ${b.dataset.name} dall'elenco?`)){
+        await deleteMed(b.dataset.name);
+        renderSettings();
+        render();
+      }
+    });
+  });
+  document.getElementById('addMedBtn').addEventListener('click', async ()=>{
+    const name = document.getElementById('newMedName').value.trim();
+    const tipo = document.getElementById('newMedTipo').value;
+    const perDay = document.getElementById('newMedPerDay').value;
+    const perPack = document.getElementById('newMedPerPack').value;
+    const stock = document.getElementById('newMedStock').value;
+    if(!name){ alert('Inserisci il nome del farmaco.'); return; }
+    const ok = await addMed({ name, tipo, perDay, perPack, stock });
+    if(!ok){ alert('Esiste già un farmaco con questo nome.'); return; }
+    renderSettings();
+    render();
   });
   document.getElementById('notifBtn').addEventListener('click', onNotifBtnClick);
   document.getElementById('contattoTipo').addEventListener('change', async (e)=>{
